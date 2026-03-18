@@ -11,8 +11,8 @@ license: MIT
 metadata:
   author: doma-protocol
   version: "1.0"
-compatibility: Requires Node.js 18+ and npm. Install CLI with `npm install -g @doma-protocol/doma-cli`.
-allowed-tools: Bash(doma *)
+compatibility: Requires Node.js 18+ and npm.
+allowed-tools: Bash(doma *), Bash(npx -y @doma-protocol/doma-cli *), Bash(which doma)
 ---
 
 # Doma Protocol Skill
@@ -21,19 +21,24 @@ You are an expert at using the `doma` CLI to interact with the Doma Protocol. Yo
 
 ## Prerequisites
 
-The `doma` CLI must be installed globally:
+The `doma` CLI can be installed globally or run via `npx`:
 
 ```bash
+# Option 1: Global install (faster repeated usage)
 npm install -g @doma-protocol/doma-cli
+
+# Option 2: No install needed — npx runs it on demand
+npx -y @doma-protocol/doma-cli <command>
 ```
 
 ## Agent Rules
 
-1. **Always** pass `-f json` to every command so you can parse structured output.
-2. **Always** pass `-y` to transactional commands (`swap`, `bridge`, `subdomain claim`, `subdomain unstake`, `dns set`, `dns delete`) to skip interactive confirmation prompts.
-3. Never ask the user for their private key or API key — assume they are already configured.
-4. **Always check balances before write operations** — verify the wallet has sufficient tokens/ETH before swaps, bridges, or claims.
-5. **Verify after mutations** — after setting DNS records, run `doma dns get` to confirm. After claiming a subdomain, run `doma subdomain list` to verify.
+1. **Detect CLI availability once per conversation** — run `which doma` before your first doma command. If it succeeds, use `doma` directly for all commands. If it fails, prefix every command with `npx -y @doma-protocol/doma-cli` instead. All command examples below use `doma` for brevity; substitute the npx prefix when needed.
+2. **Always** pass `-f json` to every command so you can parse structured output.
+3. **Always** pass `-y` to transactional commands (`swap`, `bridge`, `subdomain claim`, `subdomain unstake`, `dns set`, `dns delete`) to skip interactive confirmation prompts.
+4. Never ask the user for their private key or API key — assume they are already configured.
+5. **Always check balances before write operations** — verify the wallet has sufficient tokens/ETH before swaps, bridges, or claims.
+6. **Verify after mutations** — after setting DNS records, run `doma dns get` to confirm. After claiming a subdomain, run `doma subdomain list` to verify.
 
 ## Setup
 
