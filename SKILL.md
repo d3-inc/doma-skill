@@ -2,22 +2,23 @@
 name: doma
 description: >
   Use this skill when the user asks about Doma Protocol — token trading, swapping
-  tokens, checking token prices, domain management, DNS records, subdomain staking,
-  cross-chain bridging, or interacting with the Doma blockchain. Trigger on any mention
-  of Doma tokens, domain token prices, buying/selling tokens on Doma, bridging assets
-  to/from Doma, DNS records for .ai or Doma domains, subdomain claiming, or api.doma.xyz.
+  tokens, checking token prices, domain management, DNS records, nameservers,
+  subdomain staking, cross-chain bridging, or interacting with the Doma blockchain.
+  Trigger on any mention of Doma tokens, domain token prices, buying/selling tokens
+  on Doma, bridging assets to/from Doma, DNS records for .ai or Doma domains,
+  nameserver management, subdomain claiming, or api.doma.xyz.
   Always prefer this skill's CLI over writing raw API calls or contract interactions.
 license: MIT
 metadata:
   author: doma-protocol
-  version: "1.0"
+  version: "1.1"
 compatibility: Requires Node.js 18+ and npm.
 allowed-tools: Bash(doma *), Bash(npx -y @doma-protocol/doma-cli *), Bash(which doma)
 ---
 
 # Doma Protocol Skill
 
-You are an expert at using the `doma` CLI to interact with the Doma Protocol. You help users trade tokens, manage domains/subdomains, configure DNS records, and bridge assets across chains.
+You are an expert at using the `doma` CLI to interact with the Doma Protocol. You help users trade tokens, manage domains/subdomains, configure DNS records and nameservers, and bridge assets across chains.
 
 ## Prerequisites
 
@@ -35,21 +36,22 @@ npx -y @doma-protocol/doma-cli <command>
 
 1. **Detect CLI availability once per conversation** — run `which doma` before your first doma command. If it succeeds, use `doma` directly for all commands. If it fails, prefix every command with `npx -y @doma-protocol/doma-cli` instead. All command examples below use `doma` for brevity; substitute the npx prefix when needed.
 2. **Always** pass `-f json` to every command so you can parse structured output.
-3. **Always** pass `-y` to transactional commands (`swap`, `bridge`, `subdomain claim`, `subdomain unstake`, `dns set`, `dns delete`) to skip interactive confirmation prompts.
+3. **Always** pass `-y` to transactional commands (`swap`, `bridge`, `subdomain claim`, `subdomain unstake`, `dns set`, `dns delete`, `nameservers set`) to skip interactive confirmation prompts.
 4. Never ask the user for their private key or API key — assume they are already configured.
 5. **Always check balances before write operations** — verify the wallet has sufficient tokens/ETH before swaps, bridges, or claims.
-6. **Verify after mutations** — after setting DNS records, run `doma dns get` to confirm. After claiming a subdomain, run `doma subdomain list` to verify.
+6. **Verify after mutations** — after setting DNS records, run `doma dns list` to confirm. After claiming a subdomain, run `doma subdomain list` to verify.
 
 ## Setup
 
-The CLI reads configuration from environment variables or `~/.doma/config.json`:
+The CLI reads configuration from `~/.doma/config.json` or environment variables. Use `doma config set <key> <value>` to configure. On macOS, private keys are stored in Keychain.
 
-| Variable | Description | Default |
-|---|---|---|
-| `DOMA_API_KEY` | API key for Doma (required) | — |
-| `PRIVATE_KEY` | Wallet private key (required for transactions) | — |
-| `DOMA_API_URL` | API endpoint | `https://api.doma.xyz` |
-| `DOMA_CHAIN_ID` | Default chain ID | `97477` |
+| Config Key      | Environment Variable   | Description                                    | Default |
+|-----------------|------------------------|------------------------------------------------|---------|
+| `privateKey`    | `DOMA_PRIVATE_KEY`     | Wallet private key (required for transactions) | —       |
+| `apiKey`        | `DOMA_API_KEY`         | API key for Doma                               | —       |
+| `apiUrl`        | `DOMA_API_URL`         | API endpoint (overridden by --testnet)         | —       |
+| `chainId`       | `DOMA_CHAIN_ID`        | Default chain ID                               | `97477` |
+| `testnet`       | `DOMA_TESTNET`         | Use testnet                                    | `false` |
 
 ## Supported Chains
 
@@ -73,19 +75,13 @@ Amounts are always in human-readable decimals (e.g., `1.5` means 1.5 tokens).
 
 ## Commands
 
-### price — Get token price
+### token — Get detailed token information
 
 ```bash
-doma price <token> -f json
+doma token <token> -f json
 ```
 
-### info — Get detailed token information
-
-```bash
-doma info <token> -f json
-```
-
-Returns: name, symbol, address, status, tradingVenue, priceUsd, marketCapUsd, tvlUsd, volume24hUsd, holders, launchpad info, and more.
+Returns: name, symbol, address, status, tradingVenue, priceUsd, change24hPercent, marketCapUsd, tvlUsd, volume24hUsd, holders, launchpad info, and more.
 
 ### balance — Check wallet balances
 
@@ -122,19 +118,30 @@ doma bridge <token> <amount> --from <chain> --to <chain> -y -f json
 
 Only ETH and USDC are bridgeable. Uses Relay protocol.
 
-### dns get — Get DNS records
+### domain — Get on-chain domain information
 
 ```bash
-doma dns get <name> -f json
-doma dns get <name> --host <host> -f json
+doma domain <name> -f json
+```
+
+Returns: sld, tld, icann, registrarIanaId, expiresAt, expired, nameservers, dsKeys, claimedBy, supportedCapabilities, nameTokens, complianceHold.
+
+Reads directly from the Doma chain — does not require the domain to use Doma nameservers.
+
+### dns list — List DNS records
+
+```bash
+doma dns list <name> -f json
+doma dns list <name> --host <host> -f json
 ```
 
 ### dns set — Set a DNS record onchain
 
 ```bash
-doma dns set <domain> <type> <name> <value> -y -f json
-doma dns set <domain> <type> <value> -y -f json          # name defaults to @ (apex)
+doma dns set <domain> <name> <type> <value> -y -f json
 ```
+
+Use `@` for name to set a record at the apex.
 
 | Flag | Default |
 |---|---|
@@ -143,10 +150,24 @@ doma dns set <domain> <type> <value> -y -f json          # name defaults to @ (a
 ### dns delete — Delete a DNS record onchain
 
 ```bash
-doma dns delete <domain> <type> [name] -y -f json
+doma dns delete <domain> <name> <type> -y -f json
 ```
 
-`[name]` defaults to `@` (apex) if omitted.
+Use `@` for name to delete a record at the apex.
+
+### nameservers list — List nameservers
+
+```bash
+doma nameservers list <domain> -f json
+```
+
+### nameservers set — Set nameservers
+
+```bash
+doma nameservers set <domain> <ns1> [ns2] [ns3] [ns4] -y -f json
+```
+
+Supports 1 to 4 nameservers. Only root domains are supported — subdomains cannot have nameservers set.
 
 ### subdomain check — Check availability and staking price
 
@@ -173,6 +194,14 @@ doma subdomain unstake <nameOrId> -y -f json
 ```bash
 doma subdomain list <domain> -f json
 doma subdomain list --mine -f json
+```
+
+### config — Show and manage configuration
+
+```bash
+doma config -f json                        # Show current config
+doma config set <key> <value>              # Set a config value
+doma config delete <key>                   # Remove a config value
 ```
 
 ## Multi-Step Workflows
@@ -202,7 +231,7 @@ When a user says "claim alice.software.ai":
 1. **Check availability and price**:
    - `doma subdomain check alice software.ai -f json` → get `stakingPrice` and `available`
    - If not available, tell the user and stop
-   - `doma info software.ai -f json` → get the token's contract `address`
+   - `doma token software.ai -f json` → get the token's contract `address`
 
 2. **Check if wallet has enough of the domain's fractional token**:
    - `doma balance <token-address> -f json`
@@ -234,8 +263,8 @@ When a user says "point blog.software.ai to my Vercel site" or "set up DNS for V
    - If not claimed, follow the "Claiming a Subdomain" workflow above first
 
 3. **Set DNS records**:
-   - Subdomain: `doma dns set blog.software.ai CNAME cname.vercel-dns.com -y -f json`
-   - Apex: `doma dns set software.ai A 76.76.21.21 -y -f json`
+   - Subdomain: `doma dns set blog.software.ai @ CNAME cname.vercel-dns.com -y -f json`
+   - Apex: `doma dns set software.ai @ A 76.76.21.21 -y -f json`
 
 4. **Add domain to Vercel project** — check if `vercel` CLI is available and use it to automate the Vercel side:
    ```bash
@@ -253,10 +282,10 @@ When a user says "point blog.software.ai to my Vercel site" or "set up DNS for V
 
 5. **Check if Vercel requires TXT verification** — after adding the domain, Vercel may return a verification token:
    - The `vercel domains add` output or `vercel domains inspect blog.software.ai` will show if verification is needed and provide the TXT value
-   - If verification is needed: `doma dns set blog.software.ai TXT _vercel "<verification-value>" -y -f json`
+   - If verification is needed: `doma dns set blog.software.ai _vercel TXT "<verification-value>" -y -f json`
    - Then verify: `vercel domains verify blog.software.ai`
 
-6. **Confirm everything**: `doma dns get blog.software.ai -f json`
+6. **Confirm everything**: `doma dns list blog.software.ai -f json`
 
 If `vercel` CLI is not available, fall back to asking the user to:
 1. Add the domain in Vercel dashboard
@@ -303,4 +332,4 @@ scripts/doma-dns-get.sh <domain_or_subdomain> [host]   # Requires: DOMA_API_KEY,
 scripts/doma-subdomain-list.sh <domain>                # Requires: DOMA_API_KEY, curl, jq
 ```
 
-These are read-only — write operations (swap, bridge, dns set/delete, subdomain claim) require the full CLI.
+These are read-only — write operations (swap, bridge, dns set/delete, nameservers set) require the full CLI.
