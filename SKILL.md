@@ -316,6 +316,7 @@ For detailed technical documentation, read these files as needed:
 - [references/token-swaps.md](references/token-swaps.md) — Bonding curve and Uniswap V3 swap mechanics
 - [references/graphql-api.md](references/graphql-api.md) — Doma GraphQL API queries and types
 - [references/dns-management.md](references/dns-management.md) — Onchain DNS, record types, CNAME rules, propagation
+- [references/nameservers.md](references/nameservers.md) — Registry-level nameserver management, contracts, capabilities
 - [references/subdomains.md](references/subdomains.md) — Staking mechanics, contract interface
 - [references/bridging.md](references/bridging.md) — Relay protocol, supported routes, timeouts
 
