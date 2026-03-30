@@ -70,4 +70,4 @@ For subdomains like `myname.software.ai`, hosts are relative to the subdomain:
 
 ## Propagation
 
-After a transaction is confirmed, DNS records typically propagate within 30-60 seconds. Use `doma dns get <domain>` to verify records after setting them.
+After a transaction is confirmed, DNS records typically propagate within 30-60 seconds. Use `doma dns list <domain>` to verify records after setting them.
